@@ -165,26 +165,26 @@ mpirun -np 4 python main.py
 
 ---
 
-## 👥 Group Members & Roles
+## Team Members & Roles
 
-- **Member 1: MPI Master & Concurrency Lead**
-  - Environment setup (MPI + mpi4py)
-  - Master process logic
-  - Task distribution
-  - Lock synchronization
+**Gerald Helbiro Jr.** (@potakaaa) - Lead 1
+- Environment setup (MPI + mpi4py)
+- Master process logic
+- Task distribution
+- Lock synchronization
 
-- **Member 2: Worker Execution & Shared Memory Lead**
-  - Worker logic
-  - Shared memory implementation
+**Hans Matthew Del Mundo** (@hdmGOAT) - Lead 2
+- Worker execution logic
+- Shared memory implementation (Manager.list)
 
-- **Member 3: Simulation & Quality Assurance**
-  - Processing delays (`time.sleep`)
-  - Testing with/without lock
+**Ira Chloie Narisma** (@unripelo) - Lead 3
+- Processing delays (time.sleep)
+- Testing and quality assurance
+- Test reports and analysis
 
-- **Member 4: Documentation & Submission Manager**
-  - README and documentation
-  - Execution recording (GIF)
-  - Repository organization
+**Vin Marcus Gerebise** (@areeesss) - Lead 4
+- Documentation
+- Repository organization
 
 ---
 

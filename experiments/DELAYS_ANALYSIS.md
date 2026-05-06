@@ -2,7 +2,7 @@
 
 **Component:** Worker Execution Delays  
 **Verification Date:** May 6, 2026  
-**Lead:** Quality Assurance
+**Lead:** Lead 3 - Ira Chloie Narisma
 
 ---
 
