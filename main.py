@@ -1,65 +1,99 @@
 from mpi4py import MPI
+from multiprocessing import Manager, Lock
 import time
 import random
+import multiprocessing as mp
 
-# Initialize MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
+# Critical: Create Manager OUTSIDE the main function and before MPI initialization
+# This ensures it's available to all MPI processes on the master
+if __name__ == '__main__':
+    mp.set_start_method('fork', force=True)
 
-# ======================
-# MASTER PROCESS (rank 0)
-# ======================
-if rank == 0:
-    print("\n[MASTER] Starting Parallel Pantry System...\n")
+    # Initialize MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
 
-    # Create 5–8 orders
-    orders = [f"Order_{i}" for i in range(1, 9)]
+    # Create shared memory only on master process
+    if rank == 0:
+        manager = Manager()
+        shared_orders = manager.list()
+        lock = Lock()
+    else:
+        shared_orders = None
+        lock = None
 
-    num_workers = size - 1
-    if num_workers <= 0:
-        print("[MASTER] No workers available.")
-        exit()
+    # ======================
+    # MASTER PROCESS (rank 0)
+    # ======================
+    if rank == 0:
+        print("\n[MASTER] Starting Parallel Pantry System...\n")
 
-    # Send orders to workers (round-robin)
-    for i, order in enumerate(orders):
-        worker_rank = (i % num_workers) + 1
-        print(f"[MASTER] Sending {order} to worker {worker_rank}")
-        comm.send(order, dest=worker_rank)
+        # Create 5–8 orders
+        orders = [f"Order_{i}" for i in range(1, 9)]
 
-    # Send STOP signal to all workers
-    for i in range(1, size):
-        comm.send("STOP", dest=i)
+        num_workers = size - 1
+        if num_workers <= 0:
+            print("[MASTER] No workers available.")
+            exit()
 
-    # Collect results from workers
-    results_dict = {}
+        # Send orders to workers (round-robin)
+        for i, order in enumerate(orders):
+            worker_rank = (i % num_workers) + 1
+            print(f"[MASTER] Sending {order} to worker {worker_rank}")
+            comm.send(order, dest=worker_rank)
 
-    for _ in orders:
-        result = comm.recv(source=MPI.ANY_SOURCE)
-        order_id = int(result.split("_")[1].split()[0])
-        results_dict[order_id] = result
+        # Send STOP signal to all workers
+        for i in range(1, size):
+            comm.send("STOP", dest=i)
 
-    print("\n[MASTER] Final processed orders:")
-    for i in range(1, len(orders) + 1):
-        print(results_dict[i])
+        # Wait for all workers to finish processing
+        print("\n[MASTER] Waiting for workers to complete processing...\n")
+        
+        # Collect results from workers via MPI
+        for _ in orders:
+            result = comm.recv(source=MPI.ANY_SOURCE)
+            # Use lock for thread-safe access to shared_orders
+            with lock:
+                print(f"[MASTER] [LOCK ACQUIRED] Storing result in shared memory...")
+                shared_orders.append(result)
+                print(f"[MASTER] [LOCK RELEASED] Total orders in shared memory: {len(shared_orders)}\n")
 
-# ======================
-# WORKER PROCESSES
-# ======================
-else:
-    while True:
-        order = comm.recv(source=0)
+        # Display results from shared memory
+        print("\n[MASTER] Final processed orders from shared memory:")
+        print(f"Total orders completed: {len(shared_orders)}\n")
+        
+        if len(shared_orders) > 0:
+            for completed_order in shared_orders:
+                print(f"  ✓ {completed_order}")
+        else:
+            print("  [No orders found in shared memory]")
 
-        if order == "STOP":
-            print(f"[WORKER {rank}] Stopping...")
-            break
+    # ======================
+    # WORKER PROCESSES
+    # ======================
+    else:
+        print(f"[WORKER {rank}] Ready to receive orders...\n")
+        
+        while True:
+            order = comm.recv(source=0)
 
-        print(f"[WORKER {rank}] Processing {order}...")
+            if order == "STOP":
+                print(f"[WORKER {rank}] Received STOP signal. Exiting...\n")
+                break
 
-        # Simulate processing time
-        time.sleep(random.uniform(0.5, 2.0))
+            print(f"[WORKER {rank}] Received: {order}")
 
-        result = f"{order} processed by worker {rank}"
+            # Simulate processing time (real-world delay)
+            processing_time = random.uniform(0.5, 2.0)
+            print(f"[WORKER {rank}] Processing {order} for {processing_time:.2f} seconds...")
+            time.sleep(processing_time)
 
-        # Send result back to master
-        comm.send(result, dest=0)
+            # Create result
+            result = f"{order} processed by Worker {rank} in {processing_time:.2f}s"
+            
+            print(f"[WORKER {rank}] ✓ Completed: {order}\n")
+
+            # Send result back to master via MPI
+            print(f"[WORKER {rank}] Sending result to master...\n")
+            comm.send(result, dest=0)
