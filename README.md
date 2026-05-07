@@ -1,5 +1,28 @@
 # 🍽️ Parallel Pantry: MPI-Based Order Processing System
 
+
+## 💭 Reflection Questions
+
+### 1. Why did we combine MPI with multiprocessing concepts in this activity?
+MPI handled distributed communication between ranks (master-to-worker messaging), while multiprocessing concepts (`Manager().list()` and `Lock`) handled safe shared-state behavior. Using both showed how inter-process messaging and local synchronization solve different concurrency problems.
+
+### 2. What behavior did we observe when running without `Lock()`?
+Order completion became non-deterministic across runs, and write operations had no explicit critical-section protection. Even when outputs were complete in this setup, the pattern exposed how unsafe shared writes can become as concurrency complexity increases.
+
+### 3. How did `Lock()` improve reliability?
+`Lock()` serialized shared list writes so only one writer entered the critical section at a time. This made shared-memory updates explicit, easier to reason about, and safer for scaling or future modifications.
+
+### 4. What role did `time.sleep()` play in the simulation?
+Random delays simulated realistic workload differences and forced workers to complete independently. This made concurrency visible and highlighted why result order cannot be assumed in distributed processing.
+
+### 5. What is the key lesson about deterministic vs non-deterministic outcomes?
+Concurrent systems can be correct without fixed ordering, but correctness must be protected through synchronization and clear invariants (e.g., all orders processed exactly once). Deterministic critical sections are more important than deterministic finish order.
+
+### 6. If we scale this system, what should we improve next?
+Add stronger observability (timestamps, per-order lifecycle logs), introduce fault handling (worker failures/retries), and benchmark throughput under higher process counts. These changes would make the system more production-ready beyond functional correctness.
+
+---
+
 ## 📌 Overview
 
 **Parallel Pantry** is a simulation of a distributed order processing system built using **MPI (Message Passing Interface)** and Python’s **multiprocessing** tools.
@@ -218,29 +241,6 @@ mpirun -np 4 python main.py
 ✔️ Organized repository with meaningful commits
 
 ---
-
-## 💭 Reflection Questions (Member 4)
-
-### 1. Why did we combine MPI with multiprocessing concepts in this activity?
-MPI handled distributed communication between ranks (master-to-worker messaging), while multiprocessing concepts (`Manager().list()` and `Lock`) handled safe shared-state behavior. Using both showed how inter-process messaging and local synchronization solve different concurrency problems.
-
-### 2. What behavior did we observe when running without `Lock()`?
-Order completion became non-deterministic across runs, and write operations had no explicit critical-section protection. Even when outputs were complete in this setup, the pattern exposed how unsafe shared writes can become as concurrency complexity increases.
-
-### 3. How did `Lock()` improve reliability?
-`Lock()` serialized shared list writes so only one writer entered the critical section at a time. This made shared-memory updates explicit, easier to reason about, and safer for scaling or future modifications.
-
-### 4. What role did `time.sleep()` play in the simulation?
-Random delays simulated realistic workload differences and forced workers to complete independently. This made concurrency visible and highlighted why result order cannot be assumed in distributed processing.
-
-### 5. What is the key lesson about deterministic vs non-deterministic outcomes?
-Concurrent systems can be correct without fixed ordering, but correctness must be protected through synchronization and clear invariants (e.g., all orders processed exactly once). Deterministic critical sections are more important than deterministic finish order.
-
-### 6. If we scale this system, what should we improve next?
-Add stronger observability (timestamps, per-order lifecycle logs), introduce fault handling (worker failures/retries), and benchmark throughput under higher process counts. These changes would make the system more production-ready beyond functional correctness.
-
----
-
 ## 🎥 Execution Demo GIF
 
 Place the required run recording at:
