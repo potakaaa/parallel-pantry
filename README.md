@@ -249,6 +249,10 @@ Place the required run recording at:
 
 `docs/execution-demo.gif`
 
+Preview:
+
+![Execution demo](docs/execution-demo.gif)
+
 The GIF should clearly show:
 1. Running via `mpirun -np 4 python main.py`
 2. Concurrent worker processing
