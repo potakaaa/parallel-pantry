@@ -135,9 +135,9 @@ mpirun -np 4 python main.py
 1. Master generates 5–8 orders
 2. Orders are distributed to workers using MPI
 3. Workers process orders concurrently
-4. Results are appended to shared memory
-5. Lock ensures safe, synchronized writing
-6. Master prints final processed orders
+4. Workers append results directly to shared memory via a `Manager().list()` proxy
+5. `manager.Lock()` ensures safe, synchronized writing when enabled
+6. Master prints final processed orders (collected from shared memory)
 
 ---
 
@@ -145,13 +145,11 @@ mpirun -np 4 python main.py
 
 ### ❌ Without Lock
 
-- Race conditions occur
-- Data may be inconsistent or corrupted
+- Race conditions can occur when multiple workers append concurrently to the shared list without synchronization. The unsynchronized runs demonstrate nondeterministic ordering and potential interleaving artifacts.
 
 ### ✅ With Lock
 
-- Safe access to shared memory
-- Clean and consistent output
+- Using `manager.Lock()` serializes write access so only one worker appends at a time. Workers obtain the lock, append to the shared `Manager().list()` proxy, then release the lock — producing consistent and complete shared-state updates.
 
 ---
 
