@@ -3,23 +3,29 @@ from multiprocessing import Manager
 import time
 import random
 import multiprocessing as mp
+import os
 
 # VERSION WITHOUT LOCK SYNCHRONIZATION - Used to demonstrate race conditions
 # This file shows what happens when multiple processes write to shared memory
 # simultaneously without proper synchronization
 
 if __name__ == '__main__':
-    mp.set_start_method('fork', force=True)
+    start_method = 'spawn' if os.name == 'nt' else 'fork'
+    mp.set_start_method(start_method, force=True)
 
     # Initialize MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
 
-    # Create shared memory only on master process (NO LOCK)
+    # Create shared storage only on master process.
+    # On Windows + MPI, Manager() can hang at startup, so use a local list.
     if rank == 0:
-        manager = Manager()
-        shared_orders = manager.list()
+        if os.name == 'nt':
+            shared_orders = []
+        else:
+            manager = Manager()
+            shared_orders = manager.list()
     else:
         shared_orders = None
 
@@ -49,7 +55,7 @@ if __name__ == '__main__':
 
         # Wait for all workers to finish processing
         print("\n[MASTER] Waiting for workers to complete processing...\n")
-        
+
         # Collect results from workers via MPI
         for _ in orders:
             result = comm.recv(source=MPI.ANY_SOURCE)
@@ -61,7 +67,7 @@ if __name__ == '__main__':
         # Display results from shared memory
         print("\n[MASTER] Final processed orders from shared memory:")
         print(f"Total orders completed: {len(shared_orders)}\n")
-        
+
         if len(shared_orders) > 0:
             for i, completed_order in enumerate(shared_orders, 1):
                 print(f"  {i}. {completed_order}")
@@ -73,7 +79,7 @@ if __name__ == '__main__':
     # ======================
     else:
         print(f"[WORKER {rank}] Ready to receive orders...\n")
-        
+
         while True:
             order = comm.recv(source=0)
 
@@ -91,8 +97,8 @@ if __name__ == '__main__':
 
             # Create result
             result = f"{order} processed by Worker {rank} in {processing_time:.2f}s"
-            
-            print(f"[WORKER {rank}] ✓ Completed: {order}\n")
+
+            print(f"[WORKER {rank}] Completed: {order}\n")
 
             # Send result back to master via MPI (NO synchronization)
             print(f"[WORKER {rank}] Sending result to master (no lock)...\n")
